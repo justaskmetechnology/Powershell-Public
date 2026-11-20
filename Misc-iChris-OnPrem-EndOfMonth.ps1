@@ -10,10 +10,22 @@
 # This script also needs to be run as admin and will not function without admin rights
 
 
-# Source is the current weeks dat location
-$Source = "C:\FrontierInstallFolder\"CurrentWeekEnvironmentName"\dat"
-# Destination is the previous week or previous months dat location
-$Destintation = "C:\FrontierInstallFolder\"PreviousmonthEnvironmentName"\dat"
+# Example: .\Misc-iChris-OnPrem-EndOfMonth.ps1 -CurrentEnvironment AUS_PROD -PreviousEnvironment AUS_PREVMTH
+param(
+    # Folder that holds one sub-folder per iChris environment
+    [string]$InstallFolder = "C:\FrontierInstallFolder",
+    # Source: the current week's environment
+    [string]$CurrentEnvironment = "AUS_PROD",
+    # Destination: the previous week's or previous month's environment
+    [string]$PreviousEnvironment = "AUS_PREVMTH"
+)
+
+$Source = Join-Path (Join-Path $InstallFolder $CurrentEnvironment) "dat"
+$Destination = Join-Path (Join-Path $InstallFolder $PreviousEnvironment) "dat"
+# Robocopy /mir deletes whatever is not in the source, so check both folders before stopping anything
+foreach ($Path in $Source, $Destination) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) { throw "Folder not found: $Path (check -InstallFolder / -CurrentEnvironment / -PreviousEnvironment)" }
+}
 # As of 2024 on the most current version of iChris these are the 3 services that need stopped
 # After they are stoppped the "dat" locations become unlocked and can be copied freely without lock files
 $Services = "BRELauncher","FTRnetd","FTRsched"
@@ -43,7 +55,7 @@ $ServiceStatus = $ServiceDetails.Status
 # 2: Robocopy the files from prod to prvmnt
 Write-Host "Files will now be copied from $Source to $Destination"
 Read-Host -Prompt "Press any key to continue"
-Robocopy $Source $Destintation /mir
+Robocopy $Source $Destination /mir
 Write-Host -ForegroundColor Green "Files transfer complete from $Source to $Destination"
 Write-Host -ForegroundColor Green "Review the Robocopy output"
 Read-Host -Prompt "Press any key to continue"
